@@ -1,0 +1,136 @@
+#include <pic18.h>
+#include "lcd_portd.h"
+#include "lcd_helpers.h"
+
+#define FOSC_HZ 40000000UL // board oscillator (40 MHz)
+#define FCY_HZ (FOSC_HZ / 4UL) // internal instruction clock
+#define AUDIO_RATE_HZ 25000UL // ISR target rate
+#define TMR0_RELOAD (65536UL - (FCY_HZ / AUDIO_RATE_HZ)) // overflow every 1/25000 s
+
+// Audio timing heartbeat
+volatile unsigned long g_audio_ticks = 0;
+
+/*
+   Set CCP1 PWM level
+   duty10 is a 10-bit value (0..511 when PR2 = 0x7F)
+      - PR2 sets PWM period length
+
+   Higher duty -> higher avg output voltage
+*/
+static void pwm_set_duty_ccp1(unsigned int duty10)
+{
+   if (duty10 > 511U) duty10 = 511U;
+
+   // Upper 8 bits of duty go to CCPR1L
+   CCPR1L = (unsigned char)(duty10 >> 2);
+
+   // Lower 2 bits of duty go to DC1B1:DC1B0
+   DC1B1 = (unsigned char)((duty10 >> 1) & 0x01);
+   DC1B0 = (unsigned char)(duty10 & 0x01);
+}
+
+// Same as above, for CCP2
+static void pwm_set_duty_ccp1(unsigned int duty10)
+{
+   if (duty10 > 511U) duty10 = 511U;
+
+   // Upper 8 bits of duty go to CCPR1L
+   CCPR2L = (unsigned char)(duty10 >> 2);
+
+   // Lower 2 bits of duty go to DC1B1:DC1B0
+   DC2B1 = (unsigned char)((duty10 >> 1) & 0x01);
+   DC2B0 = (unsigned char)(duty10 & 0x01);
+}
+
+// Set both PWM channels to neutral output (50%)
+static void pwm_set_midpoint(void)
+{
+   pwm_set_duty_ccp1(256U);
+   pwm_set_duty_ccp2(256U);
+}
+
+/*
+   Configure PWM hardware:
+   - CCP1 on RC2 (drum channel)
+   - CCP2 on RC1 (synth channel)
+*/
+static void audio_pwm_init(void)
+{
+   PR2 = 0x7F;
+   T2CON = 0x04; // Timer2 on, prescale = 1
+   CCP1CON = 0x0C; // CCP1 in PWM mode
+   CCP2CON = 0x0C; // CCP2 in PWM mode
+
+   pwm_set_midpoint();
+}
+
+// Load Timer0 so overflow when at target interrupt rate
+static void timer0_load(void)
+{
+   TMR0H = (unsigned char)(TMR0_RELOAD >> 8);
+   TMR0L = (unsigned char)(TMR0_RELOAD & 0xFF);
+}
+
+// Configure Timer0 as the periodic audio tick source
+static void audio_tick_init(void)
+{
+   /*
+      T0CON = 0x88:
+      - Timer0 on
+      - 16-bit mode
+      - internal clock source (Fcy)
+      - no prescaler
+   */
+   T0CON = 0x88;
+
+   timer0_load();
+   TMR0IF = 0; // Clear pending flag
+   TMR0IE = 1; // enable Timer0 interrupt
+}
+
+// One-time hardware bring-up
+static void hw_init(void)
+{
+   ADCON = 0x0F; // All I/O pins are digital
+   TRISA = 0x00;
+   TRISB = 0x00;
+   TRISC = 0x00; // RC1/RC2 are PWM outputs 
+   TRISD = 0x00;
+
+   lcd_init(LCD_DEFAULT);
+   audio_pwn_init();
+   audio_tick_init();
+
+   PEIE = 1;
+   GIE = 1; // enable all interrupts
+}
+
+// Interrupt handler at 25 KHz
+void interrupt IntServe(void)
+{
+   if (TMR01F)
+   {
+      timer0_load();
+      TMR0IF = 0;
+
+      g_audio_ticks++;
+
+      // Keep centered output for timing-only bring-up
+      pwm_set_midpoint();
+   }
+}
+
+void main(void)
+{
+   hw_init();
+
+   lcd_move(0, 0);
+   lcd_print("READY");
+   lcd_move(1, 0);
+   lcd_print("T0 ISR ACTIVE");
+
+   while (1)
+   {
+      // Sequencer code goes here   
+   }
+}
