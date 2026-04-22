@@ -1,0 +1,377 @@
+[p LITE_MODE AUTOSTATIC LFSROK EMI_WORD ]
+[d version 1.1 ]
+[d edition pro ]
+[d chip 18F4620 ]
+"215 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\main.c
+[v F1511 `(v  1 t 0 ]
+"5 C:\Program Files (x86)\HI-TECH Software\PICC-18\PRO\9.63\sources\aldiv.c
+[v ___aldiv `(l  1 e 4 0 ]
+"5 C:\Program Files (x86)\HI-TECH Software\PICC-18\PRO\9.63\sources\almod.c
+[v ___almod `(l  1 e 4 0 ]
+"5 C:\Program Files (x86)\HI-TECH Software\PICC-18\PRO\9.63\sources\lldiv.c
+[v ___lldiv `(ul  1 e 4 0 ]
+"3 C:\Program Files (x86)\HI-TECH Software\PICC-18\PRO\9.63\sources\lmul.c
+[v ___lmul `(ul  1 e 4 0 ]
+"3 C:\Program Files (x86)\HI-TECH Software\PICC-18\PRO\9.63\sources\wmul.c
+[v ___wmul `(ui  1 e 2 0 ]
+"7 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\lcd_helpers.c
+[v _lcd_print `(v  1 e 0 0 ]
+"26 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\lcd_portd.c
+[v _wait_ms `(v  1 e 0 0 ]
+"35
+[v _lcd_pause `(v  1 e 0 0 ]
+"42
+[v _lcd_strobe `(v  1 e 0 0 ]
+"56
+[v _lcd_inst `(v  1 e 0 0 ]
+"68
+[v _lcd_move `(v  1 e 0 0 ]
+"88
+[v _lcd_write `(v  1 e 0 0 ]
+"100
+[v _lcd_init `(v  1 e 0 0 ]
+"131
+[v _lcd_out `(v  1 e 0 0 ]
+"41 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\main.c
+[v _init_demo_pattern `(v  1 s 0 _init_demo_pattern ]
+"80
+[v _pwm_set_duty_ccp1 `(v  1 s 0 _pwm_set_duty_ccp1 ]
+"93
+[v _pwm_set_duty_ccp2 `(v  1 s 0 _pwm_set_duty_ccp2 ]
+"102
+[v _pwm_set_midpoint `(v  1 s 0 _pwm_set_midpoint ]
+"113
+[v _audio_pwm_init `(v  1 s 0 _audio_pwm_init ]
+"123
+[v _timer0_load `(v  1 s 0 _timer0_load ]
+"130
+[v _audio_tick_init `(v  1 s 0 _audio_tick_init ]
+"146
+[v _clamp_audio `(i  1 s 2 _clamp_audio ]
+"153
+[v _to_pwm_duty `(ui  1 s 2 _to_pwm_duty ]
+"159
+[v _update_audio_output `(v  1 s 0 _update_audio_output ]
+"215
+[v _IntServe `I(v  1 e 0 0 ]
+"255
+[v _update_step_timing `(v  1 s 0 _update_step_timing ]
+"269
+[v _main `(v  1 e 0 0 ]
+"62 C:\Program Files (x86)\HI-TECH Software\PICC-18\PRO\9.63\include\pic18f4620.h
+[v _TMR0H `VNuc  1 e 1 @4055 ]
+"63
+[v _TMR0L `VNuc  1 e 1 @4054 ]
+"66
+[v _T0CON `Nuc  1 e 1 @4053 ]
+"78
+[v _PR2 `Nuc  1 e 1 @4043 ]
+"79
+[v _T2CON `Nuc  1 e 1 @4042 ]
+"90
+[v _ADCON1 `Nuc  1 e 1 @4033 ]
+"93
+[v _CCPR1L `VNuc  1 e 1 @4030 ]
+"96
+[v _CCP1CON `VNuc  1 e 1 @4029 ]
+"98
+[v _CCPR2L `VNuc  1 e 1 @4027 ]
+"101
+[v _CCP2CON `VNuc  1 e 1 @4026 ]
+"117
+[v _TXREG `VNuc  1 e 1 @4013 ]
+"133
+[v _TRISE `VNuc  1 e 1 @3990 ]
+"134
+[v _TRISD `VNuc  1 e 1 @3989 ]
+"136
+[v _TRISC `VNuc  1 e 1 @3988 ]
+"137
+[v _TRISB `VNuc  1 e 1 @3987 ]
+"138
+[v _TRISA `VNuc  1 e 1 @3986 ]
+"148
+[v _PORTD `VNuc  1 e 1 @3971 ]
+"162
+[v _TMR0IF `VNb  1 e 0 @32658 ]
+"165
+[v _TMR0IE `Nb  1 e 0 @32661 ]
+"166
+[v _PEIE `Nb  1 e 0 @32662 ]
+"167
+[v _GIE `Nb  1 e 0 @32663 ]
+"320
+[v _DC1B0 `Nb  1 e 0 @32236 ]
+"321
+[v _DC1B1 `Nb  1 e 0 @32237 ]
+"332
+[v _DC2B0 `Nb  1 e 0 @32212 ]
+"333
+[v _DC2B1 `Nb  1 e 0 @32213 ]
+"402
+[v _TRMT `VNb  1 e 0 @32097 ]
+"617
+[v _RD1 `VNb  1 e 0 @31769 ]
+"618
+[v _RD2 `VNb  1 e 0 @31770 ]
+"619
+[v _RD3 `VNb  1 e 0 @31771 ]
+"10 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\main.c
+[v _g_audio_ticks `Vul  1 e 4 @106 ]
+"11
+[v _g_bpm `Vui  1 e 2 @120 ]
+"12
+[v _g_step `Vuc  1 e 1 @7 ]
+"13
+[v _g_samples_per_step `Vul  1 e 4 @116 ]
+"14
+[v _g_step_accum `Vul  1 e 4 @112 ]
+"15
+[v _g_pattern_steps `Vuc  1 e 1 @128 ]
+"16
+[v _g_steps_per_quarter `Vuc  1 e 1 @129 ]
+"19
+[v _g_kick_pattern `V[32]uc  1 e 32 @42 ]
+"20
+[v _g_snare_pattern `V[32]uc  1 e 32 @10 ]
+"21
+[v _g_hihat_pattern `V[32]uc  1 e 32 @74 ]
+"24
+[v _g_kick_trigger `Vuc  1 e 1 @9 ]
+"25
+[v _g_snare_trigger `Vuc  1 e 1 @8 ]
+"26
+[v _g_hihat_trigger `Vuc  1 e 1 @6 ]
+"29
+[v _g_kick_env `Vui  1 e 2 @2 ]
+"30
+[v _g_snare_env `Vui  1 e 2 @0 ]
+"31
+[v _g_hihat_env `Vui  1 e 2 @110 ]
+"32
+[v _g_noise_lfsr `Vui  1 e 2 @124 ]
+"35
+[v _g_kick_half_period `Vui  1 e 2 @122 ]
+"36
+[v _g_kick_counter `Vui  1 e 2 @4 ]
+"37
+[v _g_kick_polarity `Vc  1 e 1 @127 ]
+"304
+[v F1519 `uc  1 s 1 @126 ]
+"269
+[v _main `(v  1 e 0 0 ]
+{
+"305
+[v _current_step `uc  1 a 1 0 ]
+"317
+} 1
+"7 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\lcd_helpers.c
+[v _lcd_print `(v  1 e 0 0 ]
+{
+[v _msg `*.cDCuc  1 p 2 0 ]
+"9
+} 0
+"68 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\lcd_portd.c
+[v _lcd_move `(v  1 e 0 0 ]
+{
+[v _row `uc  1 p 1 0 ]
+[v _col `uc  1 p 1 1 ]
+"82
+} 0
+"113 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\main.c
+[v _audio_pwm_init `(v  1 s 0 _audio_pwm_init ]
+{
+"119
+} 0
+"130
+[v _audio_tick_init `(v  1 s 0 _audio_tick_init ]
+{
+"143
+} 0
+"255
+[v _update_step_timing `(v  1 s 0 _update_step_timing ]
+{
+"263
+[v _denom `ul  1 a 4 0 ]
+"266
+} 4
+"100 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\lcd_portd.c
+[v _lcd_init `(v  1 e 0 0 ]
+{
+[v _mode `uc  1 p 1 0 ]
+"126
+} 0
+"131
+[v _lcd_out `(v  1 e 0 0 ]
+{
+"132
+[v _i `uc  1 a 1 0 ]
+[v _a `[10]uc  1 a 10 1 ]
+"131
+[v _data `l  1 p 4 0 ]
+[v _d `uc  1 p 1 4 ]
+[v _n `uc  1 p 1 5 ]
+"152
+} 11
+"41 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\main.c
+[v _init_demo_pattern `(v  1 s 0 _init_demo_pattern ]
+{
+"42
+[v _i `uc  1 a 1 0 ]
+"70
+} 1
+"5 C:\Program Files (x86)\HI-TECH Software\PICC-18\PRO\9.63\sources\aldiv.c
+[v ___aldiv `(l  1 e 4 0 ]
+{
+"7
+[v _counter `uc  1 a 1 0 ]
+[v _sign `uc  1 a 1 1 ]
+"6
+[v _quotient `l  1 a 4 2 ]
+"5
+[v _dividend `l  1 p 4 0 ]
+[v _divisor `l  1 p 4 4 ]
+"37
+} 6
+"123 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\main.c
+[v _timer0_load `(v  1 s 0 _timer0_load ]
+{
+"126
+} 0
+"5 C:\Program Files (x86)\HI-TECH Software\PICC-18\PRO\9.63\sources\lldiv.c
+[v ___lldiv `(ul  1 e 4 0 ]
+{
+"7
+[v _counter `uc  1 a 1 0 ]
+"6
+[v _quotient `ul  1 a 4 1 ]
+"5
+[v _dividend `ul  1 p 4 0 ]
+[v _divisor `ul  1 p 4 4 ]
+"26
+} 5
+"5 C:\Program Files (x86)\HI-TECH Software\PICC-18\PRO\9.63\sources\almod.c
+[v ___almod `(l  1 e 4 0 ]
+{
+"6
+[v _sign `uc  1 a 1 0 ]
+[v _counter `uc  1 a 1 1 ]
+"5
+[v _dividend `l  1 p 4 0 ]
+[v _divisor `l  1 p 4 4 ]
+"30
+} 2
+"3 C:\Program Files (x86)\HI-TECH Software\PICC-18\PRO\9.63\sources\lmul.c
+[v ___lmul `(ul  1 e 4 0 ]
+{
+"4
+[v _product `ul  1 a 4 0 ]
+"3
+[v _multiplier `ul  1 p 4 0 ]
+[v _multiplicand `ul  1 p 4 4 ]
+"13
+} 4
+"88 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\lcd_portd.c
+[v _lcd_write `(v  1 e 0 0 ]
+{
+[v _c `uc  1 p 1 0 ]
+"95
+} 0
+"56
+[v _lcd_inst `(v  1 e 0 0 ]
+{
+[v _c `uc  1 p 1 0 ]
+"65
+} 0
+"102 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\main.c
+[v _pwm_set_midpoint `(v  1 s 0 _pwm_set_midpoint ]
+{
+"105
+} 0
+"93
+[v _pwm_set_duty_ccp2 `(v  1 s 0 _pwm_set_duty_ccp2 ]
+{
+[v _duty10 `ui  1 p 2 0 ]
+"98
+} 0
+"42 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\lcd_portd.c
+[v _lcd_strobe `(v  1 e 0 0 ]
+{
+"49
+} 0
+"80 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\main.c
+[v _pwm_set_duty_ccp1 `(v  1 s 0 _pwm_set_duty_ccp1 ]
+{
+[v _duty10 `ui  1 p 2 0 ]
+"89
+} 0
+"26 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\lcd_portd.c
+[v _wait_ms `(v  1 e 0 0 ]
+{
+"27
+[v _i `ui  1 a 2 0 ]
+[v _j `ui  1 a 2 2 ]
+"26
+[v _x `ui  1 p 2 0 ]
+"31
+} 4
+"35
+[v _lcd_pause `(v  1 e 0 0 ]
+{
+"36
+[v _x `uc  1 a 1 0 ]
+"38
+} 1
+"215 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\main.c
+[v _IntServe `I(v  1 e 0 0 ]
+{
+"251
+} 0
+"159
+[v _update_audio_output `(v  1 s 0 _update_audio_output ]
+{
+"161
+[v _noise `i  1 a 2 0 ]
+"160
+[v _drum_sample `i  1 a 2 2 ]
+"211
+} 4
+"123
+[v _timer0_load `(v  1 s 0 _timer0_load ]
+{
+"126
+} 0
+"80
+[v _pwm_set_duty_ccp1 `(v  1 s 0 _pwm_set_duty_ccp1 ]
+{
+[v _duty10 `ui  1 p 2 0 ]
+"89
+} 0
+"93
+[v _pwm_set_duty_ccp2 `(v  1 s 0 _pwm_set_duty_ccp2 ]
+{
+[v _duty10 `ui  1 p 2 0 ]
+"98
+} 0
+"153
+[v _to_pwm_duty `(ui  1 s 2 _to_pwm_duty ]
+{
+[v _sample `i  1 p 2 0 ]
+"156
+} 0
+"3 C:\Program Files (x86)\HI-TECH Software\PICC-18\PRO\9.63\sources\wmul.c
+[v ___wmul `(ui  1 e 2 0 ]
+{
+"4
+[v _product `ui  1 a 2 0 ]
+"3
+[v _multiplier `ui  1 p 2 0 ]
+[v _multiplicand `ui  1 p 2 2 ]
+"13
+} 2
+"146 C:\Users\anton\OneDrive\Desktop\Comp_Sci_Studies\spring_2026\ece_376\term_project\src\main.c
+[v _clamp_audio `(i  1 s 2 _clamp_audio ]
+{
+[v _x `i  1 p 2 0 ]
+"150
+} 0

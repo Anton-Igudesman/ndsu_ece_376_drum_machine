@@ -40,6 +40,20 @@ PIC18F4620 drum machine + synth project with LCD UI and timer/interrupt-driven a
 - Duty-cycle update functions used to map audio sample level to PWM registers
 - LCD shows initialization/bring-up status
 
+## Hardware Validation Log
+- Date: `2026-04-19`
+- Test: PWM baseline verification on oscilloscope
+- Probe points:
+  - `RC2 / CCP1`
+  - `RC1 / CCP2`
+- Scope observation:
+  - Stable repeating PWM waveform
+  - Approximately just under 4 cycles per `50 us` division
+  - Estimated PWM carrier frequency `~78 kHz`
+- Expected value from configuration (`Fosc=40 MHz`, `PR2=0x7F`, `T2 prescale=1`):
+  - `Fpwm = 40e6 / (4 * (127+1) * 1) = 78.125 kHz`
+- Result: PASS (observed waveform matches expected PWM frequency)
+
 ## Repository Layout
 ```text
 term_project/
