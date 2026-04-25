@@ -1,1 +1,20 @@
 AGENT_NOTES.md
+LCD_UI_PLAN.md
+
+# MPLAB / PICC build artifacts
+*.hex
+*.cof
+*.elf
+*.map
+*.lst
+*.sym
+*.obj
+*.o
+*.p1
+*.pre
+*.rlf
+*.mcs
+*.d
+*.as
+*.cod
+*.funclist
