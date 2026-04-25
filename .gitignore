@@ -18,3 +18,7 @@ LCD_UI_PLAN.md
 *.as
 *.cod
 *.funclist
+funclist
+*.hxl
+*.mcw
+*.sdb
