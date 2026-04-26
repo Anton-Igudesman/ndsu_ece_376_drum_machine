@@ -1,19 +1,9 @@
 #include <pic18.h>
 #include "lcd_portd.h"
 #include "lcd_helpers.h"
-
-#define FOSC_HZ        40000000UL
-#define FCY_HZ         (FOSC_HZ / 4UL)
-#define AUDIO_RATE_HZ  25000UL
-#define TMR0_RELOAD    (65536UL - (FCY_HZ / AUDIO_RATE_HZ))
-
-volatile unsigned long g_audio_ticks = 0;
-volatile unsigned int g_bpm = 120; // configurable BPM steps
-volatile unsigned char g_step = 0;
-volatile unsigned long g_samples_per_step = 0;
-volatile unsigned long g_step_accum = 0;
-volatile unsigned char g_pattern_steps = 16; // 8/16/24/32
-volatile unsigned char g_steps_per_quarter = 2; // timing resolution
+#include "project_config.h"
+#include "sequencer.h"
+#include "synth.h"
 
 // Pattern maps for instruments
 volatile unsigned char g_kick_pattern[32] = {0};
@@ -35,6 +25,8 @@ volatile unsigned int g_noise_lfsr = 0xACE1;
 volatile unsigned int g_kick_half_period = 120;
 volatile unsigned int g_kick_counter = 0;
 volatile signed char g_kick_polarity = 1;
+volatile unsigned char g_ui_update_flag = 0;
+volatile unsigned char g_ui_divider = 0;
 
 // Demo pattern
 static void init_demo_pattern(void)
@@ -159,6 +151,7 @@ static void update_audio_output(void)
 {
    signed int drum_sample = 0;
    signed int noise;
+   signed int synth_sample;
 
    // Linear Feedback Shift Register - noise machine
    g_noise_lfsr = (g_noise_lfsr >> 1) ^ (-(signed int)(g_noise_lfsr & 1U) & 0xB400U);
@@ -206,8 +199,38 @@ static void update_audio_output(void)
    // Drum channel output (RC2/CCP1): signed sample -> 10-bit PWM duty
    pwm_set_duty_ccp1(to_pwm_duty(drum_sample));
 
-   // Idle synth currently
-   pwm_set_duty_ccp2(256U);
+   // Synth channel output (RC1/CCP2)
+   synth_sample = synth_tick_sample();
+   pwm_set_duty_ccp2(to_pwm_duty(synth_sample));
+}
+
+static void ui_draw_status_labels(void)
+{
+   lcd_move(0, 0); lcd_print("STEP: ");
+   lcd_move(0, 9); lcd_print("LEN: ");
+   lcd_move(1, 0); lcd_print("BPM: ");
+   lcd_move(1, 9); lcd_print("SPQ:");
+}
+
+static void ui_service_status(void)
+{
+   static unsigned char last_displayed_step = LCD_STEP_INVALID;
+   unsigned char current_step;
+
+   if (!g_ui_update_flag) return;
+
+   g_ui_update_flag = 0;
+   current_step = seq_get_step();
+
+   if (current_step != last_displayed_step)
+   {
+      last_displayed_step = current_step;
+
+      lcd_move(0, 5);  lcd_out(current_step, 2, 0);
+      lcd_move(0, 13); lcd_out(seq_get_pattern_steps(), 2, 0);
+      lcd_move(1, 4);  lcd_out(seq_get_bpm(), 3, 0);
+      lcd_move(1, 13); lcd_out(seq_get_steps_per_quarter(), 1, 0);
+   }
 }
 
 // Interrupt handler at 25 KHz
@@ -218,51 +241,58 @@ void interrupt IntServe(void)
       timer0_load();
       TMR0IF = 0;
 
-      g_audio_ticks++;
-      g_step_accum++;
+      //  Sequencer timing by one audio tick
+      seq_tick();
 
-      if (g_step_accum >= g_samples_per_step)
+      // Only run trigger logic on true step boundaries
+      if (seq_step_advanced())
       {
-         // Preserve phase
-         g_step_accum -= g_samples_per_step;
-         g_step++;
-         
-         // wrap around selected pattern length
-         if (g_step >= g_pattern_steps) g_step = 0;
+         unsigned char step_now = seq_get_step();
 
-         // Trigger checks
-         if (g_kick_pattern[g_step]) g_kick_trigger = 1;
-         if (g_snare_pattern[g_step]) g_snare_trigger = 1;
-         if (g_hihat_pattern[g_step]) g_hihat_trigger = 1;
+         // Pattern lookups for step
+         if (g_kick_pattern[step_now]) g_kick_trigger = 1;
+         if (g_snare_pattern[step_now]) g_snare_trigger = 1;
+         if (g_hihat_pattern[step_now]) g_hihat_trigger = 1;
 
-         if (g_kick_trigger) 
+         // Load synth note for the new step
+         synth_on_step(step_now);
+
+         // Convert triggers into envelope starts
+         if (g_kick_trigger)
          {
-            g_kick_env = 1100;
-            g_kick_half_period = 45;
+            g_kick_env = KICK_ENV_DEFAULT;
+            g_kick_half_period = KICK_HALF_PERIOD_START;
             g_kick_counter = g_kick_half_period;
-            g_kick_polarity = 1; 
+            g_kick_polarity = 1;
             g_kick_trigger = 0;
          }
-         if (g_snare_trigger) {g_snare_env = 1000; g_snare_trigger = 0;}
-         if (g_hihat_trigger) {g_hihat_env = 500; g_hihat_trigger = 0;}
+
+         if (g_snare_trigger)
+         {
+            g_snare_env = SNARE_ENV_DEFAULT;
+            g_snare_trigger = 0;
+         }
+
+         if (g_hihat_trigger)
+         {
+            g_hihat_env = HIHAT_ENV_DEFAULT;
+            g_hihat_trigger = 0;
+         }
       }
+
+      // Render one audio sameple every ISR tick
       update_audio_output();
+
+      // Update UI at a slower rate than audio processing
+      g_ui_divider++;
+
+      // When enough ticks pass, main loop refresh LCD
+      if(g_ui_divider >= UI_UPDATE_DIVIDER_TICKS) // ~10 ms
+      {
+         g_ui_divider = 0;
+         g_ui_update_flag = 1;
+      }
    }
-}
-
-// Convert BPM into ISR ticks per sequencer step
-static void update_step_timing(void)
-{
-   /*
-      samples per step = (AUDIO_RATE x 60) / (BPM x steps per quarter)
-   */
-
-   // Safety clamp
-   if (g_steps_per_quarter == 0) g_steps_per_quarter = 1;
-
-   unsigned long denom = (unsigned long)g_bpm * (unsigned long) g_steps_per_quarter;
-   if (denom == 0UL) denom = 1UL;
-   g_samples_per_step = (AUDIO_RATE_HZ * 60UL) / denom;
 }
 
 void main(void)
@@ -282,36 +312,28 @@ void main(void)
    audio_pwm_init();
    audio_tick_init();
 
-   // Safety clamp
-   if (g_pattern_steps < 8) g_pattern_steps = 8;
-   if (g_pattern_steps > 32) g_pattern_steps = 32;
+   // Init sequencer module with project defaults
+   seq_init();
+   seq_set_pattern_steps(PATTERN_STEPS_DEFAULT);
+   seq_set_steps_per_quarter(STEPS_PER_QUARTER_DEFAULT);
+   seq_set_bpm(BPM_DEFAULT);
 
-   update_step_timing();
+   // Init demo drum and synth patterns
    init_demo_pattern();
+   synth_init();
+   synth_load_demo_pattern();
 
    PEIE = 1;
    GIE  = 1;
 
-   // clear bottom row
+   // Draw UI
    lcd_move(1, 0); lcd_print("                ");
-   lcd_move(0, 0); lcd_print("STEP: ");
-   lcd_move(0, 9); lcd_print("LEN: ");
-   lcd_move(1, 0); lcd_print("BPM: ");
-   lcd_move(1, 9); lcd_print("SPQ:");
+   ui_draw_status_labels();
+   g_ui_update_flag = 1;
 
+   // Only update LCD when ISR requests
    while (1) 
    {
-      static unsigned char last_displayed_step = 255;
-      unsigned char current_step = g_step;
-
-      if (current_step != last_displayed_step)
-      {
-         last_displayed_step = current_step;
-
-         lcd_move(0, 5); lcd_out(current_step, 2, 0);
-         lcd_move(0, 13); lcd_out(g_pattern_steps, 2, 0);
-         lcd_move(1, 4); lcd_out(g_bpm, 3, 0);
-         lcd_move(1, 13); lcd_out(g_steps_per_quarter, 1, 0);
-      }
+     ui_service_status();
    }
 }

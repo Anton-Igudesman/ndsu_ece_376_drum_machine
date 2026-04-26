@@ -31,14 +31,25 @@ PIC18F4620 drum machine + synth project with LCD UI and timer/interrupt-driven a
 - LCD helper module added:
   - `src/lcd_helpers.c`
   - `include/lcd_helpers.h`
-- Main bring-up file created:
-  - `src/main.c`
+- Shared config and constants added:
+  - `include/project_config.h`
+- Sequencer module added:
+  - `include/sequencer.h`
+  - `src/sequencer.c`
+- Synth module added:
+  - `include/synth.h`
+  - `src/synth.c`
+- Main integration file:
+  - `src/main.c` (drum engine + ISR + LCD glue, ongoing modular split)
 
 ## Current Architecture (In Progress)
-- Timer0 interrupt planned as fixed audio tick (`~25 kHz`)
-- CCP PWM channels used as two audio outputs
-- Duty-cycle update functions used to map audio sample level to PWM registers
-- LCD shows initialization/bring-up status
+- Timer0 interrupt used as fixed audio tick (`~25 kHz`)
+- Sequencer step timing derived from BPM/steps-per-quarter in dedicated module
+- CCP PWM channels used as two audio outputs:
+  - CCP1/RC2 drum channel
+  - CCP2/RC1 synth channel
+- Drum synthesis and synth synthesis both active in current code path
+- LCD runtime update logic is being refined for reliable on-the-fly UI updates
 
 ## Hardware Validation Log
 - Date: `2026-04-19`
@@ -58,9 +69,14 @@ PIC18F4620 drum machine + synth project with LCD UI and timer/interrupt-driven a
 ```text
 term_project/
   include/
+    project_config.h
+    sequencer.h
+    synth.h
     lcd_portd.h
     lcd_helpers.h
   src/
+    sequencer.c
+    synth.c
     lcd_portd.c
     lcd_helpers.c
     main.c
@@ -69,11 +85,11 @@ term_project/
 ```
 
 ## Next Milestones
-1. Finalize stable hardware bring-up (`LCD + PWM + timer ISR`).
-2. Add sequencer timing from BPM (step-advance engine).
-3. Add drum voice synthesis and per-step triggering.
-4. Add synth oscillator and note-frequency mapping.
-5. Add LCD edit modes for drums/synth and slot windowing.
+1. Finish clean `main.c` integration to exclusively use sequencer module API.
+2. Stabilize runtime LCD update path (event-gated updates while ISR audio runs).
+3. Expand/edit pattern content for 32-step demonstrations when enabled.
+4. Add mode-based LCD edit screens (drum/synth/config) with 8-step window paging.
+5. Perform dedicated sound-design tuning pass (drum/synth balance and envelope shaping).
 
 ## Toolchain Note
 This project currently uses legacy-style includes (for example `#include <pic18.h>`) from:
