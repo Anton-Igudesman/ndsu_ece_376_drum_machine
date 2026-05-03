@@ -7,7 +7,7 @@
 #include "ui_state.h"
 
 // UI row templates (16 chars each for full LCD row writes)
-static const char UI_STATUS_TEMPLATE[17] = "BPM:    MODE:   ";
+static const char UI_STATUS_TEMPLATE[17] = "BPM:            ";
 
 static const char UI_MODE_EDIT_TEXT[4] = "EDT";
 static const char UI_MODE_PLAY_TEXT[4] = "PLY";
@@ -37,6 +37,9 @@ volatile unsigned char g_ui_divider = 0;
 
 // Current synth letter selection for step-write (0=A ... 6=G)
 volatile unsigned char g_synth_selected_letter = 0U;
+
+// Sequencer transport state
+volatile unsigned char g_transport_running = 0U;
 
 // BPM edit state (active only in EDIT screen)
 volatile unsigned char g_bpm_edit_active = 0U;
@@ -227,6 +230,47 @@ static void update_audio_output(void)
    pwm_set_duty_ccp2(to_pwm_duty(synth_sample));
 }
 
+// Make edit cursor immediately visible after edit action
+static void ui_refresh_edit_cursor_now(void)
+{
+   g_edit_blink_counter = 0U;
+   g_edit_cursor_visible = 1U;
+}
+
+// Map letter and octave to synth note index (1..21)
+static unsigned char ui_make_synth_note_index(
+   unsigned char letter,
+   unsigned char octave)
+{
+   unsigned char octave_offset;
+
+   // Clamp letter to A..G
+   if (letter > 6U) letter = 0U;
+
+   // Clamp octave to 3..5
+   if (octave < OCTAVE_MIN) octave = OCTAVE_MIN;
+   if (octave > OCTAVE_MAX) octave = OCTAVE_MAX;
+
+   // Convert octave 3..5 to offset 0..2
+   octave_offset = (unsigned char)(octave - OCTAVE_MIN);
+
+   /*
+      Index layout:
+      0 = OFF
+      1..7 = A3..G3
+      8..14 = A4..G4
+      15..21 = A5..G5
+   */
+   return (unsigned char)(1U + (octave_offset * 7U) + letter);
+}
+
+// Convert synth note index to display character
+static unsigned char ui_note_index_to_letter(unsigned char note_index)
+{
+   if (note_index == 0U) return '_';
+   return (unsigned char)('A' + ((note_index - 1U) % 7U));
+}
+
 // Toggle selected step on active track page
 static void ui_toggle_selected_step(void)
 {
@@ -278,38 +322,11 @@ static void ui_toggle_selected_step(void)
    g_ui_update_flag = 1U; // Mark for UI update
 }
 
-// Map letter and octave to synth note index (1..21)
-static unsigned char ui_make_synth_note_index(
-   unsigned char letter,
-   unsigned char octave)
+// Toggle playback transport run/stop state
+static void ui_toggle_transport(void)
 {
-   unsigned char octave_offset;
-
-   // Clamp letter to A..G
-   if (letter > 6U) letter = 0U;
-
-   // Clamp octave to 3..5
-   if (octave < OCTAVE_MIN) octave = OCTAVE_MIN;
-   if (octave > OCTAVE_MAX) octave = OCTAVE_MAX;
-
-   // Convert octave 3..5 to offset 0..2
-   octave_offset = (unsigned char)(octave - OCTAVE_MIN);
-
-   /*
-      Index layout:
-      0 = OFF
-      1..7 = A3..G3
-      8..14 = A4..G4
-      15..21 = A5..G5
-   */
-   return (unsigned char)(1U + (octave_offset * 7U) + letter);
-}
-
-// Convert synth note index to display character
-static unsigned char ui_note_index_to_letter(unsigned char note_index)
-{
-   if (note_index == 0U) return '_';
-   return (unsigned char)('A' + ((note_index - 1U) % 7U));
+   g_transport_running ^= 1U;
+   g_ui_update_flag = 1U;
 }
 
 // Forward declaration needed because this helper is used before its definition.
@@ -504,25 +521,66 @@ static void ui_draw_status_row(void)
    else lcd_print(UI_MODE_PLAY_TEXT);
 }
 
+// Only refresh UI when flagged or tracked UI state changes
 static void ui_service_status(void)
 {
+   // Last rendered snapshot
    static unsigned char last_displayed_step = LCD_STEP_INVALID;
    static unsigned char last_window_start = LCD_STEP_INVALID;
+   static unsigned char last_track_page = 0xFFU;
+   static unsigned char last_screen_mode = 0xFFU;
+   static unsigned char last_bpm_blink_visible = 0xFFU;
+   static unsigned int last_bpm = 0xFFFFU;
+   static unsigned char last_cursor_step = LCD_STEP_INVALID;
+   static unsigned char last_edit_cursor_visible = 0xFFU;
+
    unsigned char current_step;
    unsigned char current_window_start;
+   unsigned char current_track_page;
+   unsigned char current_screen_mode;
+   unsigned char current_bpm_blink_visible;
+   unsigned int current_bpm;
+   unsigned char current_cursor_step;
+   unsigned char current_edit_cursor_visible;
 
+   // ISR sets flag with visual changes
    if (!g_ui_update_flag) return;
 
    g_ui_update_flag = 0;
+
+   // Snapshot current UI state
    current_step = ui_state_get_play_step();
    current_window_start = ui_state_get_window_start();
+   current_track_page = ui_state_get_track_page();
+   current_screen_mode = g_ui_screen_mode;
+   current_bpm_blink_visible = g_bpm_blink_visible;
+   current_bpm = seq_get_bpm();
+   current_cursor_step = ui_state_get_selected_step();
+   current_edit_cursor_visible = g_edit_cursor_visible;
 
+   // Redraw when any display-driving state changes
    if (current_step != last_displayed_step || 
-      (current_window_start != last_window_start)) 
+      (current_window_start != last_window_start) ||
+      (current_track_page != last_track_page) ||
+      (current_screen_mode != last_screen_mode) ||
+      (current_bpm != last_bpm) ||
+      (current_cursor_step != last_cursor_step) ||
+      (g_bpm_edit_active && 
+         (current_bpm_blink_visible != last_bpm_blink_visible)) ||
+      ((g_ui_screen_mode == UI_SCREEN_EDIT) &&
+         (current_edit_cursor_visible != last_edit_cursor_visible))) 
    {
+      // Update snapshot to current values before drawing
       last_displayed_step = current_step;
       last_window_start = current_window_start;
+      last_track_page = current_track_page;
+      last_screen_mode = current_screen_mode;
+      last_bpm_blink_visible = current_bpm_blink_visible;
+      last_bpm = current_bpm;
+      last_cursor_step = current_cursor_step;
+      last_edit_cursor_visible = current_edit_cursor_visible;
 
+      // Row 0: step window, Row 1: status text/values
       ui_draw_step_window();
       ui_draw_status_row();
    }
@@ -592,6 +650,11 @@ static void ui_adjust_bpm(signed char delta)
    }
 
    seq_set_bpm(bpm_now);
+
+   // Keep BPM visible after user adjustment
+   g_bpm_blink_counter = 0U;
+   g_bpm_blink_visible = 1U;
+
    g_ui_update_flag = 1U;
 }
 
@@ -599,6 +662,9 @@ static void ui_toggle_screen_mode(void)
 {
    if (g_ui_screen_mode == UI_SCREEN_EDIT) g_ui_screen_mode = UI_SCREEN_PLAY;
    else g_ui_screen_mode = UI_SCREEN_EDIT;
+
+   // Entering EDIT mode stop playback
+   if (g_ui_screen_mode == UI_SCREEN_EDIT) g_transport_running = 0U;
 
    // Reset blink state so edit cursor returns immediately
    g_edit_blink_counter = 0U;
@@ -624,6 +690,8 @@ static void ui_poll_page_button(void)
    // EDIT mode: allow page and cursor navigation
    if (g_ui_screen_mode == UI_SCREEN_EDIT)
    {
+      g_transport_running = 0U; // editing always stops playback
+
       // RB0: cycle instrument page (K -> S -> H -> Y -> K)
       if (RB0 && !rb0_prev)
       {
@@ -638,6 +706,7 @@ static void ui_poll_page_button(void)
          if (RB1)
          {
             ui_state_cursor_left();
+            ui_refresh_edit_cursor_now();
             g_ui_update_flag = 1U; // request LCD redraw
          }
       }
@@ -649,22 +718,23 @@ static void ui_poll_page_button(void)
          if (RB2)
          {
             ui_state_cursor_right();
+            ui_refresh_edit_cursor_now();
             g_ui_update_flag = 1U;
          }
       }
 
-      // RB4: toggle BPM edit mode
-      if (RB4 && !rb4_prev)
-      {
-         wait_ms(20);
-         if (RB4) ui_toggle_bpm_edit_mode();
-      }
+   
 
       // RB5: toggle selected step
       if (RB5 && !rb5_prev)
       {
          wait_ms(20);
-         if (RB5) ui_toggle_selected_step();
+         if (RB5)
+         {
+            ui_toggle_selected_step();
+            ui_refresh_edit_cursor_now();
+            g_ui_update_flag = 1U;
+         }
       }
 
       /*
@@ -676,7 +746,8 @@ static void ui_poll_page_button(void)
          wait_ms(8); // allows for quick button presses
          if (RB6)
          {
-            if ((ui_state_get_track_page() == TRACK_PAGE_SYNTH) && !g_bpm_edit_active)
+            if (g_bpm_edit_active) ui_adjust_bpm((signed char)-1);
+            else if ((ui_state_get_track_page() == TRACK_PAGE_SYNTH) && !g_bpm_edit_active)
             {
                unsigned char step_index;
                unsigned char current_note;
@@ -698,8 +769,6 @@ static void ui_poll_page_button(void)
                   g_ui_update_flag = 1U;
                }
             }
-            
-            else ui_adjust_bpm((signed char)(-((signed int)BPM_STEP)));
          } 
       }
 
@@ -712,7 +781,8 @@ static void ui_poll_page_button(void)
          wait_ms(8);
          if (RB7) 
          {
-            if ((ui_state_get_track_page() == TRACK_PAGE_SYNTH) && !g_bpm_edit_active)
+            if (g_bpm_edit_active) ui_adjust_bpm((signed char)1);
+            else if ((ui_state_get_track_page() == TRACK_PAGE_SYNTH) && !g_bpm_edit_active)
             {
                unsigned char step_index;
                unsigned char current_note;
@@ -739,8 +809,6 @@ static void ui_poll_page_button(void)
                   g_ui_update_flag = 1U;
                }
             }
-
-            else ui_adjust_bpm(BPM_STEP);
          }
       }
    }
@@ -750,6 +818,21 @@ static void ui_poll_page_button(void)
    {
       wait_ms(20);
       if (RB3) ui_toggle_screen_mode();
+   }
+
+   /*
+      RB4: 
+      EDIT -> toggle BPM edit mode
+      PLAY -> playback start/stop
+   */
+   if (RB4 && !rb4_prev)
+   {
+      wait_ms(20);
+      if (RB4)
+      {
+         if (g_ui_screen_mode == UI_SCREEN_EDIT) ui_toggle_bpm_edit_mode();
+         else ui_toggle_transport();
+      }
    }
 
    // Always update previous-state latches
@@ -772,10 +855,10 @@ void interrupt IntServe(void)
       TMR0IF = 0;
 
       //  Sequencer timing by one audio tick
-      seq_tick();
+      if (g_transport_running) seq_tick();
 
       // Only run trigger logic on true step boundaries
-      if (seq_step_advanced())
+      if (g_transport_running && seq_step_advanced())
       {
          unsigned char step_now = seq_get_step();
 

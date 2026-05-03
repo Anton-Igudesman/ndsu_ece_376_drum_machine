@@ -1,75 +1,43 @@
-# Controls Summary
+# Drum Machine Controls (Quick Guide)
 
-This file documents the control behavior currently implemented in `src/main.c`.
+Use this as the button cheat sheet while running the project.
 
-## Screen Modes
+## 1) Screen Modes
 
-- `EDIT` mode:
-  - Step editing/navigation controls are active.
-  - Top-row selected step blinks using a filled block (`UI_CURSOR_BLOCK_CHAR`).
-- `PLAY` mode:
-  - Edit controls are disabled.
-  - Top-row playhead shows `*` at the current sequencer step.
+- `RB3`: switch between `EDT` (edit) and `PLY` (play).
+- Entering `EDT` always stops playback.
 
-Mode toggle is on `RB3` (edge-detected, debounced), and works in both modes.
+## 2) PLAY Mode (`PLY`)
 
-## Track Pages
+- `RB4`: start/stop playback.
+- No step editing in this mode.
 
-- `RB0` cycles track page in `EDIT` mode:
-  - `K` (kick) -> `S` (snare) -> `H` (hihat) -> `Y` (synth) -> `K`
+## 3) EDIT Mode (`EDT`)
 
-Top row header shows page + 8-step window, for example `K1:` then 8 slots.
+- `RB0`: change track page (`K` -> `S` -> `H` -> `Y` -> repeat).
+- `RB1`: move cursor left.
+- `RB2`: move cursor right.
+- `RB5`: toggle selected step ON/OFF.
 
-## Cursor Navigation (EDIT mode only)
+### BPM edit in EDIT mode
 
-- `RB1`: move edit cursor left
-- `RB2`: move edit cursor right
+- `RB4`: toggle BPM edit ON/OFF.
+- While BPM edit is ON:
+  - `RB6`: BPM down.
+  - `RB7`: BPM up.
 
-## Step Editing (EDIT mode only)
+## 4) Synth Editing (`Y` page in EDIT mode)
 
-- `RB5`: toggle selected step value on the active page
-  - `K/S/H` pages: direct `OFF <-> ON` step toggle
-  - `Y` page: direct synth step `OFF <-> ON` toggle
-    - `ON` writes the currently selected synth note index
+- First, select a step with `RB1/RB2`.
+- Press `RB5` to turn that synth step ON.
+- With that step ON:
+  - `RB6`: cycle note letter (`A`..`G`, wraps).
+  - `RB7`: cycle octave (`3`..`5`, wraps).
+- If step is OFF, `RB6/RB7` do not change note/octave.
 
-## BPM Editing
+## 5) What You See on LCD
 
-- `RB4` (EDIT mode only): toggle BPM edit arm/disarm
-- When BPM edit is armed:
-  - BPM value blinks in row 2
-  - `RB6`: BPM down (fast debounce)
-  - `RB7`: BPM up (fast debounce)
-
-Configured bounds and step are defined in `include/project_config.h`:
-- `BPM_MIN`
-- `BPM_MAX`
-- `BPM_STEP`
-
-## Synth Step Editing (EDIT mode, `Y` page, BPM edit OFF)
-
-- `RB6`: cycle selected synth step letter `A..G` with wrap
-  - applies only if the selected synth step is already `ON`
-  - if selected synth step is `OFF`, no letter edit is applied
-- `RB7`: cycle selected synth step octave `3..5` with wrap
-  - applies only if the selected synth step is already `ON`
-  - updates status row `O:x` to match the edited octave
-
-When not in the synth-edit context above:
-- `RB6` and `RB7` keep BPM down/up behavior (while in `EDIT` mode).
-
-## Status Row (Row 2)
-
-- `BPM` shown at cols `4..6`
-- `O:x` shown at cols `8..10` only on synth page (`Y`)
-- mode label at cols `13..15`: `EDT` or `PLY`
-
-## Hardware Input Configuration
-
-Current control mapping expects all `PORTB` control buttons as inputs:
-- `TRISB = 0xFF`
-
-This supports `RB0..RB7` button reads in the current implementation.
-
-## Completion Note
-
-Controls documentation is updated to match the current implemented behavior.
+- Top row: current page (`K/S/H/Y`), window number, and 8 step slots.
+- In `EDT`: selected step blinks as a block.
+- In `PLY`: playhead shows `*`.
+- Bottom row: BPM at left, `O:x` on synth page, mode label at right (`EDT` or `PLY`).

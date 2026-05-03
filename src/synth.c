@@ -79,6 +79,8 @@ void synth_load_demo_pattern(void)
    s_synth_notes[14] = 21;   // G5
 }
 
+// Cycle synth step note in UI
+
 // Return note index stored at sequencer step
 unsigned char synth_get_note_at_step(unsigned char step_index)
 {
@@ -86,6 +88,18 @@ unsigned char synth_get_note_at_step(unsigned char step_index)
    if (step_index >= STEPS_MAX) return 0U;
 
    return s_synth_notes[step_index];
+}
+
+// Write one synth step with bounds checks on step and note index
+void synth_set_note_at_step(unsigned char step_index, unsigned char note_index)
+{
+   // Guard against out-of-bounds step writes
+   if (step_index >= STEPS_MAX) return;
+
+   // Clamp invalid note indices to OFF
+   if (note_index > 21U) note_index = 0U;
+
+   s_synth_notes[step_index] = note_index;
 }
 
 void synth_on_step(unsigned char step_index)
