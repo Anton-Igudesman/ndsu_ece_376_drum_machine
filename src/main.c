@@ -35,6 +35,9 @@ volatile signed char g_kick_polarity = 1;
 volatile unsigned char g_ui_update_flag = 0;
 volatile unsigned char g_ui_divider = 0;
 
+// Current synth letter selection for step-write (0=A ... 6=G)
+volatile unsigned char g_synth_selected_letter = 0U;
+
 // BPM edit state (active only in EDIT screen)
 volatile unsigned char g_bpm_edit_active = 0U;
 volatile unsigned char g_bpm_blink_visible = 1U;
@@ -224,6 +227,84 @@ static void update_audio_output(void)
    pwm_set_duty_ccp2(to_pwm_duty(synth_sample));
 }
 
+// Toggle selected step on active track page
+static void ui_toggle_selected_step(void)
+{
+   unsigned char step_index;
+   unsigned char track_page;
+
+   step_index = ui_state_get_selected_step();
+   track_page = ui_state_get_track_page();
+
+   switch (track_page)
+   {
+      case TRACK_PAGE_KICK:
+         g_kick_pattern[step_index] ^= 1U;
+         break;
+
+      case TRACK_PAGE_SNARE:
+         g_snare_pattern[step_index] ^= 1U;
+         break;
+      
+      case TRACK_PAGE_HIHAT:
+         g_hihat_pattern[step_index] ^= 1U;
+         break;
+      
+      case TRACK_PAGE_SYNTH:
+      {
+         unsigned char current_note;
+         unsigned char target_note;
+
+         current_note = synth_get_note_at_step(step_index);
+
+         // OFF -> selected note, note -> OFF
+         if (current_note == 0U)
+         {
+            target_note = ui_make_synth_note_index(
+               g_synth_selected_letter,
+               ui_state_get_octave()
+            );
+            synth_set_note_at_step(step_index, target_note);
+         }
+
+         else synth_set_note_at_step(step_index, 0U);
+         break;
+      }
+
+      default:
+         break;
+   }
+
+   g_ui_update_flag = 1U; // Mark for UI update
+}
+
+// Map letter and octave to synth note index (1..21)
+static unsigned char ui_make_synth_note_index(
+   unsigned char letter,
+   unsigned char octave)
+{
+   unsigned char octave_offset;
+
+   // Clamp letter to A..G
+   if (letter > 6U) letter = 0U;
+
+   // Clamp octave to 3..5
+   if (octave < OCTAVE_MIN) octave = OCTAVE_MIN;
+   if (octave > OCTAVE_MAX) octave = OCTAVE_MAX;
+
+   // Convert octave 3..5 to offset 0..2
+   octave_offset = (unsigned char)(octave - OCTAVE_MIN);
+
+   /*
+      Index layout:
+      0 = OFF
+      1..7 = A3..G3
+      8..14 = A4..G4
+      15..21 = A5..G5
+   */
+   return (unsigned char)(1U + (octave_offset * 7U) + letter);
+}
+
 // Convert synth note index to display character
 static unsigned char ui_note_index_to_letter(unsigned char note_index)
 {
@@ -368,6 +449,7 @@ static void ui_draw_status_row(void)
    unsigned char bpm_hundreds;
    unsigned char bpm_tens;
    unsigned char bpm_ones;
+   unsigned char track_page;
 
    // Full row template
    lcd_move(1, 0); lcd_print(UI_STATUS_TEMPLATE);
@@ -395,6 +477,25 @@ static void ui_draw_status_row(void)
       lcd_write(bpm_hundreds ? (unsigned char)('0' + bpm_hundreds) : ' ');
       lcd_write((bpm_hundreds || bpm_tens) ? (unsigned char)('0' + bpm_tens) : ' ');
       lcd_write((unsigned char)('0' + bpm_ones));
+   }
+
+   // Show octave only when current track page is synth
+   track_page = ui_state_get_track_page();
+   lcd_move(1, 8);
+
+   if (track_page == TRACK_PAGE_SYNTH)
+   {
+      lcd_write('O');
+      lcd_write(':');
+      lcd_write((unsigned char)('0' + ui_state_get_octave()));
+   }
+
+   // Make sure octave section is blank when on other screens
+   else
+   {
+      lcd_write(' ');
+      lcd_write(' ');
+      lcd_write(' ');
    }
    
    // Show current screen mode at cols 13..15
@@ -516,6 +617,7 @@ static void ui_poll_page_button(void)
    static unsigned char rb2_prev = 0U;
    static unsigned char rb3_prev = 0U;
    static unsigned char rb4_prev = 0U;
+   static unsigned char rb5_prev = 0U;
    static unsigned char rb6_prev = 0U;
    static unsigned char rb7_prev = 0U;
    
@@ -558,18 +660,88 @@ static void ui_poll_page_button(void)
          if (RB4) ui_toggle_bpm_edit_mode();
       }
 
-      // RB6: BPM down 
+      // RB5: toggle selected step
+      if (RB5 && !rb5_prev)
+      {
+         wait_ms(20);
+         if (RB5) ui_toggle_selected_step();
+      }
+
+      /*
+         RB6: BPM edit on -> BPM down
+         BPM edit off -> synth letter cycle
+      */ 
       if (RB6 && !rb6_prev)
       {
          wait_ms(8); // allows for quick button presses
-         if (RB6) ui_adjust_bpm((signed char)(-((signed int)BPM_STEP)));
+         if (RB6)
+         {
+            if ((ui_state_get_track_page() == TRACK_PAGE_SYNTH) && !g_bpm_edit_active)
+            {
+               unsigned char step_index;
+               unsigned char current_note;
+               unsigned char letter;
+               unsigned char octave;
+
+               step_index = ui_state_get_selected_step();
+               current_note = synth_get_note_at_step(step_index);
+
+               if (current_note != 0U)
+               {
+                  octave = (unsigned char)(((current_note - 1U) / 7U) + OCTAVE_MIN);
+                  letter = (unsigned char)((current_note - 1U) % 7U);
+
+                  letter++;
+                  if (letter > 6U) letter = 0U;
+
+                  synth_set_note_at_step(step_index, ui_make_synth_note_index(letter, octave));
+                  g_ui_update_flag = 1U;
+               }
+            }
+            
+            else ui_adjust_bpm((signed char)(-((signed int)BPM_STEP)));
+         } 
       }
 
-      // RB7: BPM up
+      /*
+         RB7: BPM edit on -> BPM up
+         BPM edit off -> octave cycle 3..5 then wrap
+      */
       if (RB7 && !rb7_prev)
       {
          wait_ms(8);
-         if (RB7) ui_adjust_bpm(BPM_STEP);
+         if (RB7) 
+         {
+            if ((ui_state_get_track_page() == TRACK_PAGE_SYNTH) && !g_bpm_edit_active)
+            {
+               unsigned char step_index;
+               unsigned char current_note;
+               unsigned char letter;
+               unsigned char octave;
+
+               step_index = ui_state_get_selected_step();
+               current_note = synth_get_note_at_step(step_index);
+
+               // Only edit octave if step already has a note
+               if (current_note != 0U)
+               {
+                  octave = (unsigned char)(((current_note - 1U) / 7U) + OCTAVE_MIN);
+                  letter = (unsigned char)((current_note - 1U) % 7U);
+
+                  octave++;
+                  if (octave > OCTAVE_MAX) octave = OCTAVE_MIN;
+
+                  synth_set_note_at_step(step_index, ui_make_synth_note_index(letter, octave));
+
+                  // Keep status-row O:x synced to selected step's octave
+                  ui_state_set_octave(octave);
+
+                  g_ui_update_flag = 1U;
+               }
+            }
+
+            else ui_adjust_bpm(BPM_STEP);
+         }
       }
    }
    
@@ -586,6 +758,7 @@ static void ui_poll_page_button(void)
    rb2_prev = RB2 ? 1U : 0U;
    rb3_prev = RB3 ? 1U : 0U;
    rb4_prev = RB4 ? 1U : 0U;
+   rb5_prev = RB5 ? 1U : 0U;
    rb6_prev = RB6 ? 1U : 0U;
    rb7_prev = RB7 ? 1U : 0U;
 }
@@ -697,7 +870,7 @@ void main(void)
 {
    ADCON1 = 0x0F;
    TRISA = 0x00;
-   TRISB = 0x0F; // RB0..RB3 are inputs
+   TRISB = 0xFF; // RB0..RB7 are inputs
    TRISC = 0x00;
    TRISD = 0x00;
    TRISE = 0x00;
