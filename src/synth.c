@@ -79,6 +79,15 @@ void synth_load_demo_pattern(void)
    s_synth_notes[14] = 21;   // G5
 }
 
+// Return note index stored at sequencer step
+unsigned char synth_get_note_at_step(unsigned char step_index)
+{
+   // No out-of-bounds array access
+   if (step_index >= STEPS_MAX) return 0U;
+
+   return s_synth_notes[step_index];
+}
+
 void synth_on_step(unsigned char step_index)
 {
    s_current_note = s_synth_notes[step_index];
